@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="8dp"
+    android:background="@color/surface"
+    android:layout_marginBottom="6dp">
+
+    <View
+        android:id="@+id/colorSwatch"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/circle_swatch"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <EditText
+        android:id="@+id/moodNameInput"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginHorizontal="12dp"
+        android:hint="Mood name"
+        android:inputType="textCapSentences"
+        android:maxLength="30"
+        android:imeOptions="actionNext" />
+
+    <ImageButton
+        android:id="@+id/removeButton"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:src="@drawable/ic_delete"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Remove"
+        android:tint="@color/delete_red" />
+
+</LinearLayout>
