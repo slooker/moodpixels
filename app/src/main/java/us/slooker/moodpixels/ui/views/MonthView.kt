@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.MotionEvent
-import us.slooker.moodpixels.data.db.MoodEntry
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -28,44 +27,46 @@ class MonthView @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
-    private val dayHeaders = listOf(DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
-        DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+    private val dayHeaders = listOf(
+        DayOfWeek.MONDAY, DayOfWeek.TUESDAY, DayOfWeek.WEDNESDAY,
+        DayOfWeek.THURSDAY, DayOfWeek.FRIDAY, DayOfWeek.SATURDAY, DayOfWeek.SUNDAY
+    )
 
     private val headerHeight get() = dpToPx(36f)
-    private val cellSize get() = (width / 7).toFloat()
+    private val cellWidth get() = (width / 7).toFloat()
+    private val cellHeight get() = dpToPx(84f)
 
-    /** rows needed for this month */
     private val rowCount: Int
         get() {
             val firstDay = anchorDate.withDayOfMonth(1)
-            val startOffset = (firstDay.dayOfWeek.value - 1) // Monday=0
-            val daysInMonth = anchorDate.lengthOfMonth()
-            return Math.ceil((startOffset + daysInMonth) / 7.0).toInt()
+            val startOffset = firstDay.dayOfWeek.value - 1
+            return Math.ceil((startOffset + anchorDate.lengthOfMonth()) / 7.0).toInt()
         }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val w = MeasureSpec.getSize(widthMeasureSpec)
-        setMeasuredDimension(w, w)
+        val h = (headerHeight + rowCount * dpToPx(84f)).toInt()
+        setMeasuredDimension(w, h)
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val cs = cellSize
-        val numRows = rowCount
+        val cw = cellWidth
+        val ch = cellHeight
 
-        // Day-of-week headers
+        // Day-of-week header row
         headerPaint.color = Color.parseColor("#F5F5F5")
         canvas.drawRect(0f, 0f, width.toFloat(), headerHeight, headerPaint)
         dayHeaders.forEachIndexed { i, dow ->
             val label = dow.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            val x = i * cs + cs / 2f - headerTextPaint.measureText(label) / 2f
+            val x = i * cw + cw / 2f - headerTextPaint.measureText(label) / 2f
             canvas.drawText(label, x, headerHeight - dpToPx(6f), headerTextPaint)
         }
 
         val firstDay = anchorDate.withDayOfMonth(1)
-        val startOffset = firstDay.dayOfWeek.value - 1 // Monday=0
+        val startOffset = firstDay.dayOfWeek.value - 1
 
-        for (row in 0 until numRows) {
+        for (row in 0 until rowCount) {
             for (col in 0 until 7) {
                 val dayIndex = row * 7 + col - startOffset
                 val dayNum = dayIndex + 1
@@ -73,47 +74,52 @@ class MonthView @JvmOverloads constructor(
 
                 val date = anchorDate.withDayOfMonth(dayNum)
                 val dateStr = date.format(isoFormatter)
-                val x = col * cs
-                val y = headerHeight + row * cs
+                val x = col * cw
+                val y = headerHeight + row * ch
 
-                // Background
-                if (date == today) {
-                    todayPaint.color = Color.parseColor("#FFF9C4")
-                    canvas.drawRect(x, y, x + cs, y + cs, todayPaint)
-                } else {
-                    cellPaint.color = Color.WHITE
-                    canvas.drawRect(x, y, x + cs, y + cs, cellPaint)
-                }
+                // Cell background
+                cellPaint.color = if (date == today) Color.parseColor("#FFF9C4") else Color.WHITE
+                canvas.drawRect(x, y, x + cw, y + ch, cellPaint)
 
-                // Draw mood pixels (micro grid: up to 24 pixels in 6x4)
+                // Day number
+                dayNumPaint.color = if (date == today) Color.parseColor("#E53935") else Color.parseColor("#333333")
+                dayNumPaint.textSize = dpToPx(12f)
+                canvas.drawText(dayNum.toString(), x + dpToPx(4f), y + dpToPx(14f), dayNumPaint)
+
+                // Mood pixel rows
                 val dayEntries = entriesMap[dateStr]
                 if (!dayEntries.isNullOrEmpty()) {
-                    val pixelCols = 6
-                    val pixelRows = 4
-                    val padding = dpToPx(16f)
-                    val pixW = (cs - padding * 2) / pixelCols
-                    val pixH = (cs - padding * 2 - dpToPx(18f)) / pixelRows
-                    var pIdx = 0
-                    for (h in 0..23) {
-                        val entry = dayEntries[h] ?: continue
-                        if (pIdx >= pixelCols * pixelRows) break
-                        val pc = pIdx % pixelCols
-                        val pr = pIdx / pixelCols
-                        val px = x + padding + pc * pixW
-                        val py = y + dpToPx(18f) + pr * pixH
-                        cellPaint.color = entry.colorValue
-                        canvas.drawRect(px, py, px + pixW - 1f, py + pixH - 1f, cellPaint)
-                        pIdx++
+                    // Group by mood, count per mood, sort by count descending
+                    val moodGroups = dayEntries.values
+                        .groupBy { it.colorValue to it.moodName }
+                        .map { (key, entries) -> Triple(key.first, key.second, entries.size) }
+                        .sortedByDescending { it.third }
+
+                    val pixelSize = dpToPx(9f)
+                    val pixelGap = dpToPx(2f)
+                    val rowGap = dpToPx(4f)
+                    val cellPadding = dpToPx(4f)
+                    val maxPixelsWide = ((cw - cellPadding * 2) / (pixelSize + pixelGap)).toInt()
+                        .coerceAtLeast(1)
+                    var rowY = y + dpToPx(19f)
+
+                    for ((color, _, count) in moodGroups) {
+                        // Stop if no room left in the cell
+                        if (rowY + pixelSize > y + ch - cellPadding) break
+
+                        val pixelsToShow = count.coerceAtMost(maxPixelsWide)
+                        var pixelX = x + cellPadding
+                        repeat(pixelsToShow) {
+                            cellPaint.color = color
+                            canvas.drawRect(pixelX, rowY, pixelX + pixelSize, rowY + pixelSize, cellPaint)
+                            pixelX += pixelSize + pixelGap
+                        }
+                        rowY += pixelSize + rowGap
                     }
                 }
 
-                // Day number
-                val dayLabel = dayNum.toString()
-                dayNumPaint.color = if (date == today) Color.parseColor("#E53935") else Color.parseColor("#333333")
-                canvas.drawText(dayLabel, x + dpToPx(4f), y + dpToPx(14f), dayNumPaint)
-
-                // Grid lines
-                canvas.drawRect(x, y, x + cs, y + cs, gridPaint)
+                // Cell border
+                canvas.drawRect(x, y, x + cw, y + ch, gridPaint)
             }
         }
     }
@@ -121,21 +127,17 @@ class MonthView @JvmOverloads constructor(
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_UP) {
-            val cs = cellSize
-            val col = (event.x / cs).toInt().coerceIn(0, 6)
-            val row = ((event.y - headerHeight) / cs).toInt()
+            val col = (event.x / cellWidth).toInt().coerceIn(0, 6)
+            val row = ((event.y - headerHeight) / cellHeight).toInt()
             if (row < 0) return true
 
             val firstDay = anchorDate.withDayOfMonth(1)
             val startOffset = firstDay.dayOfWeek.value - 1
-            val dayIndex = row * 7 + col - startOffset
-            val dayNum = dayIndex + 1
+            val dayNum = row * 7 + col - startOffset + 1
             if (dayNum < 1 || dayNum > anchorDate.lengthOfMonth()) return true
 
             val date = anchorDate.withDayOfMonth(dayNum)
-            val dateStr = date.format(isoFormatter)
-            // -1 signals "navigate to day view" for this date
-            onSlotClick?.invoke(dateStr, -1, null)
+            onSlotClick?.invoke(date.format(isoFormatter), -1, null)
         }
         return true
     }

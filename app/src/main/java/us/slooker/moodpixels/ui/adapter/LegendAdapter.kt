@@ -37,22 +37,35 @@ class LegendAdapter(
 
         (holder.colorSwatch.background as? GradientDrawable)?.setColor(entry.colorValue)
         holder.colorSwatch.setOnClickListener {
-            onColorClick(holder.adapterPosition, entries[holder.adapterPosition].colorValue)
+            val pos = holder.adapterPosition
+            if (pos != RecyclerView.NO_POSITION) {
+                onColorClick(pos, entries[pos].colorValue)
+            }
         }
 
+        // Remove old watcher before rebinding to avoid stale callbacks
         holder.textWatcher?.let { holder.nameInput.removeTextChangedListener(it) }
         holder.nameInput.setText(entry.moodName)
         val watcher = object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                onNameChanged(holder.adapterPosition, s?.toString() ?: "")
+                val pos = holder.adapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    entries[pos] = entries[pos].copy(moodName = s?.toString() ?: "")
+                    onNameChanged(pos, s?.toString() ?: "")
+                }
             }
         }
         holder.nameInput.addTextChangedListener(watcher)
         holder.textWatcher = watcher
 
-        holder.removeBtn.setOnClickListener { onRemove(holder.adapterPosition) }
+        holder.removeBtn.setOnClickListener {
+            val pos = holder.adapterPosition
+            if (pos != RecyclerView.NO_POSITION) {
+                onRemove(pos)
+            }
+        }
     }
 
     override fun getItemCount() = entries.size
@@ -64,16 +77,11 @@ class LegendAdapter(
         }
     }
 
-    fun updateName(index: Int, name: String) {
-        if (index in entries.indices) {
-            entries[index] = entries[index].copy(moodName = name)
-        }
-    }
-
     fun removeAt(index: Int) {
         if (index in entries.indices) {
             entries.removeAt(index)
             notifyItemRemoved(index)
+            notifyItemRangeChanged(index, entries.size)
         }
     }
 
@@ -81,4 +89,6 @@ class LegendAdapter(
         entries.add(entry)
         notifyItemInserted(entries.size - 1)
     }
+
+    fun getCurrentEntries(): List<LegendEntry> = entries.toList()
 }

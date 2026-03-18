@@ -1,11 +1,11 @@
 package us.slooker.moodpixels.ui.settings
 
 import android.content.Intent
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
-import android.graphics.drawable.GradientDrawable
-import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 import us.slooker.moodpixels.MoodPixelsApp
 import us.slooker.moodpixels.R
 import us.slooker.moodpixels.export.JsonExporter
+import us.slooker.moodpixels.ui.questions.QuestionsActivity
 import us.slooker.moodpixels.ui.setup.LegendSetupActivity
 
 class SettingsActivity : AppCompatActivity() {
@@ -29,6 +30,7 @@ class SettingsActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
 
         val editLegendBtn = findViewById<Button>(R.id.editLegendButton)
+        val manageQuestionsBtn = findViewById<Button>(R.id.manageQuestionsButton)
         val exportBtn = findViewById<Button>(R.id.exportButton)
         val deleteAllBtn = findViewById<Button>(R.id.deleteAllButton)
         val legendPreview = findViewById<LinearLayout>(R.id.legendPreview)
@@ -41,19 +43,27 @@ class SettingsActivity : AppCompatActivity() {
             })
         }
 
+        manageQuestionsBtn.setOnClickListener {
+            startActivity(Intent(this, QuestionsActivity::class.java))
+        }
+
         exportBtn.setOnClickListener {
             val app = application as MoodPixelsApp
             lifecycleScope.launch {
                 val entries = app.repository.getAllEntries()
-                if (entries.isEmpty()) {
+                val questions = app.questionRepository.getAllQuestionsSnapshot()
+                val answers = app.questionRepository.getAllAnswers()
+                if (entries.isEmpty() && questions.isEmpty()) {
                     AlertDialog.Builder(this@SettingsActivity)
                         .setTitle("No Data")
-                        .setMessage("You haven't logged any moods yet.")
+                        .setMessage("You haven't logged any moods or questions yet.")
                         .setPositiveButton("OK", null)
                         .show()
                     return@launch
                 }
-                val shareIntent = JsonExporter.buildShareIntent(this@SettingsActivity, entries)
+                val shareIntent = JsonExporter.buildShareIntent(
+                    this@SettingsActivity, entries, questions, answers
+                )
                 startActivity(Intent.createChooser(shareIntent, "Export Mood Data"))
             }
         }
@@ -61,7 +71,7 @@ class SettingsActivity : AppCompatActivity() {
         deleteAllBtn.setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Delete All Data")
-                .setMessage("This will permanently delete all your mood entries. This cannot be undone.")
+                .setMessage("This will permanently delete all mood entries and question answers. This cannot be undone.")
                 .setPositiveButton("Delete") { _, _ ->
                     lifecycleScope.launch {
                         (application as MoodPixelsApp).repository.deleteAll()

@@ -266,6 +266,132 @@ No legend settings or app config is included in the export.
 
 ---
 
+## Scheduled Questions & Notifications
+
+Users can create questions asked on a schedule (e.g. "Did you take your meds?"). Each
+question has a notification that fires at a configured time and leads to an answer screen.
+
+### Data Model additions (DB version 2)
+
+**`questions` table** (`Question.kt`):
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK autoincrement | |
+| `text` | TEXT | The question to ask |
+| `answer_type` | TEXT | `"TEXT"` / `"YES_NO"` / `"NUMBER"` |
+| `schedule_type` | TEXT | `"DAILY"` / `"SPECIFIC_DAYS"` |
+| `schedule_days` | INTEGER | Bitmask: bit0=Mon…bit6=Sun; 127 = all days |
+| `notify_hour` | INTEGER | 0–23 |
+| `notify_minute` | INTEGER | 0–59 |
+| `is_active` | INTEGER (Boolean) | 1 = active (alarms scheduled) |
+| `created_at` | INTEGER | Unix epoch millis |
+
+**`question_answers` table** (`QuestionAnswer.kt`):
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | INTEGER PK autoincrement | |
+| `question_id` | INTEGER FK → questions(id) CASCADE DELETE | |
+| `question_text` | TEXT | Denormalized snapshot of question at answer time |
+| `answer_text` | TEXT nullable | For TEXT type |
+| `answer_bool` | INTEGER nullable | For YES_NO type |
+| `answer_number` | REAL nullable | For NUMBER type |
+| `answered_at` | INTEGER | Unix epoch millis |
+
+Migration `MIGRATION_1_2` in `AppDatabase.kt` handles upgrading existing installs.
+
+### Notification flow
+
+```
+AlarmScheduler.scheduleNext(context, question)
+    │  Calculates next calendar trigger based on schedule_type + schedule_days
+    │  Uses setExactAndAllowWhileIdle (or setAndAllowWhileIdle on API 31+
+    │  if SCHEDULE_EXACT_ALARM not granted)
+    ▼
+QuestionAlarmReceiver.onReceive()   [BroadcastReceiver, goAsync()]
+    │  Loads question from DB
+    │  Posts notification via NotificationHelper
+    └─ Reschedules next alarm
+
+Notification tap → AnswerActivity
+    │  Shows question text + input widget matching answer_type
+    └─ On submit: saves QuestionAnswer, cancels notification, finishes
+
+BootReceiver.onReceive()  [BOOT_COMPLETED]
+    └─ Reschedules all active questions
+```
+
+### Files added for this feature
+
+```
+notifications/
+    NotificationHelper.kt       Channel creation + posting + cancellation
+    AlarmScheduler.kt           scheduleNext() / cancel() using AlarmManager
+    QuestionAlarmReceiver.kt    BroadcastReceiver: post notification + reschedule
+    BootReceiver.kt             BroadcastReceiver: reschedule on device boot
+
+data/db/
+    Question.kt                 Room @Entity
+    QuestionAnswer.kt           Room @Entity (FK to questions)
+    QuestionDao.kt              Room @Dao
+
+data/repository/
+    QuestionRepository.kt       Wraps QuestionDao, singleton
+
+ui/questions/
+    QuestionsActivity.kt        RecyclerView list of questions + FAB to add
+    QuestionsViewModel.kt       save/delete/toggleActive with alarm scheduling
+    QuestionAdapter.kt          ListAdapter with edit/delete/switch per row
+
+ui/answer/
+    AnswerActivity.kt           Answer input screen (opened from notification)
+    AnswerViewModel.kt          Loads question, saves answer by type
+
+res/layout/
+    activity_questions.xml      CoordinatorLayout: Toolbar + RecyclerView + FAB
+    activity_answer.xml         Toolbar + question text + 3 answer layouts (visibility toggled)
+    dialog_edit_question.xml    Question form: text, answer type, schedule, day checkboxes, time
+    item_question.xml           Row: question text, schedule summary, active Switch, edit/delete
+
+res/drawable/
+    ic_notification.xml         Bell icon (white) for notification
+    ic_edit.xml                 Pencil icon for edit button in question list
+```
+
+### Permissions added to AndroidManifest.xml
+
+- `RECEIVE_BOOT_COMPLETED` — reschedule alarms after reboot
+- `POST_NOTIFICATIONS` — required on Android 13+ (runtime permission requested in QuestionsActivity)
+- `SCHEDULE_EXACT_ALARM` — for precise alarm timing
+
+### Export format (updated)
+
+`JsonExporter.buildShareIntent(context, moodEntries, questions, answers)` now outputs:
+
+```json
+{
+  "exportedAt": "2025-03-15T14:30:00",
+  "moodEntries": [ { "date": "...", "hour": 14, "color": "#E53935", "mood": "Anger", "note": null } ],
+  "questions": [
+    {
+      "id": 1,
+      "text": "Did you take your meds?",
+      "answerType": "YES_NO",
+      "scheduleType": "DAILY",
+      "scheduleDays": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
+      "notifyTime": "09:00",
+      "isActive": true,
+      "answers": [
+        { "answeredAt": "2025-03-15T09:05:00", "value": true }
+      ]
+    }
+  ]
+}
+```
+
+---
+
 ## Things to Know When Resuming on Another Machine
 
 1. **Android Studio version:** any version that supports AGP 8.9+ (Ladybug or newer)

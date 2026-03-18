@@ -6,6 +6,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -16,6 +17,7 @@ import com.google.android.material.tabs.TabLayout
 import kotlinx.coroutines.launch
 import us.slooker.moodpixels.MoodPixelsApp
 import us.slooker.moodpixels.R
+import us.slooker.moodpixels.data.db.MoodEntry
 import us.slooker.moodpixels.data.db.MoodEntry
 import us.slooker.moodpixels.export.JsonExporter
 import us.slooker.moodpixels.ui.dialogs.MoodEntryDialog
@@ -246,8 +248,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun exportAndShare() {
         lifecycleScope.launch {
+            val app = application as MoodPixelsApp
             val entries = viewModel.getAllEntries()
-            if (entries.isEmpty()) {
+            val questions = app.questionRepository.getAllQuestionsSnapshot()
+            val answers = app.questionRepository.getAllAnswers()
+            if (entries.isEmpty() && questions.isEmpty()) {
                 AlertDialog.Builder(this@MainActivity)
                     .setTitle("No Data")
                     .setMessage("You haven't logged any moods yet.")
@@ -255,7 +260,7 @@ class MainActivity : AppCompatActivity() {
                     .show()
                 return@launch
             }
-            val shareIntent = JsonExporter.buildShareIntent(this@MainActivity, entries)
+            val shareIntent = JsonExporter.buildShareIntent(this@MainActivity, entries, questions, answers)
             startActivity(Intent.createChooser(shareIntent, "Export Mood Data"))
         }
     }

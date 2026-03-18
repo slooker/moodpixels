@@ -20,6 +20,7 @@ class LegendSetupActivity : AppCompatActivity() {
 
     private val viewModel: LegendSetupViewModel by viewModels()
     private lateinit var adapter: LegendAdapter
+    private lateinit var recyclerView: RecyclerView
     private lateinit var doneButton: Button
 
     val isEditMode get() = intent.getBooleanExtra(EXTRA_EDIT_MODE, false)
@@ -30,28 +31,33 @@ class LegendSetupActivity : AppCompatActivity() {
 
         val titleView = findViewById<TextView>(R.id.setupTitle)
         val subtitleView = findViewById<TextView>(R.id.setupSubtitle)
-        val recyclerView = findViewById<RecyclerView>(R.id.legendRecyclerView)
+        recyclerView = findViewById(R.id.legendRecyclerView)
         val addFab = findViewById<FloatingActionButton>(R.id.addMoodFab)
         doneButton = findViewById(R.id.doneButton)
 
+        // Load existing entries for edit mode before creating the adapter
         if (isEditMode) {
             titleView.text = "Edit Your Legend"
-            subtitleView.text = "Update your mood colors and names"
+            subtitleView.text = "Update your mood colors and names."
             doneButton.text = "Save Changes"
             viewModel.loadExisting()
+        } else {
+            subtitleView.text = "On this screen, choose a color and choose a mood to match that color. " +
+                "We'll be using those colors as \"pixels\" to track your mood each hour, day, week or month. " +
+                "You can add or remove as many colors/moods as you like."
         }
 
-        val entries = viewModel.entries.value ?: mutableListOf()
+        // Give the adapter its own copy so it is the sole owner of this list
+        val initialEntries = viewModel.entries.value?.toMutableList() ?: mutableListOf()
         adapter = LegendAdapter(
-            entries = entries,
+            entries = initialEntries,
             onColorClick = { index, current -> showColorPicker(index, current) },
             onRemove = { index ->
-                viewModel.removeEntry(index)
+                // Adapter removes from its own list; ViewModel is not touched here
                 adapter.removeAt(index)
                 updateDoneButton()
             },
-            onNameChanged = { index, name ->
-                viewModel.updateEntry(index, entries[index].copy(moodName = name))
+            onNameChanged = { _, _ ->
                 updateDoneButton()
             }
         )
@@ -59,21 +65,17 @@ class LegendSetupActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
-        viewModel.entries.observe(this) { list ->
-            updateDoneButton()
-        }
-
         addFab.setOnClickListener {
             val newEntry = LegendEntry(colorValue = Color.GRAY, moodName = "")
-            viewModel.addEntry(newEntry)
             adapter.addEntry(newEntry)
             recyclerView.scrollToPosition(adapter.itemCount - 1)
             updateDoneButton()
         }
 
         doneButton.setOnClickListener {
-            if (viewModel.isValid()) {
-                viewModel.saveAndComplete()
+            val current = adapter.getCurrentEntries()
+            if (isAdapterValid(current)) {
+                viewModel.saveEntries(current)
                 if (isEditMode) {
                     finish()
                 } else {
@@ -89,15 +91,17 @@ class LegendSetupActivity : AppCompatActivity() {
     private fun showColorPicker(index: Int, currentColor: Int) {
         val dialog = ColorPickerDialog.newInstance(currentColor)
         dialog.onColorSelected = { color ->
-            viewModel.updateEntry(index, (viewModel.entries.value ?: mutableListOf())[index].copy(colorValue = color))
             adapter.updateColor(index, color)
         }
         dialog.show(supportFragmentManager, "color_picker")
     }
 
     private fun updateDoneButton() {
-        doneButton.isEnabled = viewModel.isValid()
+        doneButton.isEnabled = isAdapterValid(adapter.getCurrentEntries())
     }
+
+    private fun isAdapterValid(entries: List<LegendEntry>): Boolean =
+        entries.isNotEmpty() && entries.all { it.moodName.isNotBlank() }
 
     companion object {
         const val EXTRA_EDIT_MODE = "edit_mode"
