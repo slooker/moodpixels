@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import us.slooker.moodpixels.MoodPixelsApp
 import us.slooker.moodpixels.R
 import us.slooker.moodpixels.data.db.MoodEntry
-import us.slooker.moodpixels.data.db.MoodEntry
 import us.slooker.moodpixels.export.JsonExporter
 import us.slooker.moodpixels.ui.dialogs.MoodEntryDialog
 import us.slooker.moodpixels.ui.settings.SettingsActivity

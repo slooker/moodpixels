@@ -1,3 +1,7 @@
+# Keystore and signing credentials — never commit these
+moodpixels.jks
+keystore.properties
+
 *.iml
 .gradle
 /local.properties

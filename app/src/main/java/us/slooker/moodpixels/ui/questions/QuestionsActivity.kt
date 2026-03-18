@@ -5,15 +5,14 @@ import android.app.AlarmManager
 import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.LayoutInflater
-import android.widget.ArrayAdapter
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.RadioGroup
-import android.widget.Spinner
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -46,6 +45,7 @@ class QuestionsActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
 
         requestNotificationPermissionIfNeeded()
+        requestExactAlarmPermissionIfNeeded()
 
         adapter = QuestionAdapter(
             onToggle = { question -> viewModel.toggleActive(question) },
@@ -166,6 +166,30 @@ class QuestionsActivity : AppCompatActivity() {
                 != PackageManager.PERMISSION_GRANTED
             ) {
                 notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+    }
+
+    private fun requestExactAlarmPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = getSystemService(AlarmManager::class.java)
+            if (!alarmManager.canScheduleExactAlarms()) {
+                AlertDialog.Builder(this)
+                    .setTitle("Enable precise notifications")
+                    .setMessage(
+                        "For questions to notify you at the exact time you set, " +
+                        "please allow MoodPixels to schedule exact alarms in the next screen."
+                    )
+                    .setPositiveButton("Open Settings") { _, _ ->
+                        startActivity(
+                            Intent(
+                                Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                                Uri.parse("package:$packageName")
+                            )
+                        )
+                    }
+                    .setNegativeButton("Not now", null)
+                    .show()
             }
         }
     }

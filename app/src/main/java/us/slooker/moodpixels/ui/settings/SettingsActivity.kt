@@ -7,6 +7,7 @@ import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -15,10 +16,42 @@ import kotlinx.coroutines.launch
 import us.slooker.moodpixels.MoodPixelsApp
 import us.slooker.moodpixels.R
 import us.slooker.moodpixels.export.JsonExporter
+import us.slooker.moodpixels.export.JsonImporter
 import us.slooker.moodpixels.ui.questions.QuestionsActivity
 import us.slooker.moodpixels.ui.setup.LegendSetupActivity
 
 class SettingsActivity : AppCompatActivity() {
+
+    private val importFilePicker = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@registerForActivityResult
+        lifecycleScope.launch {
+            val outcome = JsonImporter.importFromUri(this@SettingsActivity, uri)
+            when (outcome) {
+                is JsonImporter.ImportOutcome.Success -> {
+                    val r = outcome.result
+                    AlertDialog.Builder(this@SettingsActivity)
+                        .setTitle("Import complete")
+                        .setMessage(
+                            "Imported:\n" +
+                            "• ${r.moodEntriesImported} mood entries\n" +
+                            "• ${r.questionsImported} questions\n" +
+                            "• ${r.answersImported} answers"
+                        )
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+                is JsonImporter.ImportOutcome.Failure -> {
+                    AlertDialog.Builder(this@SettingsActivity)
+                        .setTitle("Import failed")
+                        .setMessage(outcome.message)
+                        .setPositiveButton("OK", null)
+                        .show()
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,6 +64,7 @@ class SettingsActivity : AppCompatActivity() {
 
         val editLegendBtn = findViewById<Button>(R.id.editLegendButton)
         val manageQuestionsBtn = findViewById<Button>(R.id.manageQuestionsButton)
+        val importBtn = findViewById<Button>(R.id.importButton)
         val exportBtn = findViewById<Button>(R.id.exportButton)
         val deleteAllBtn = findViewById<Button>(R.id.deleteAllButton)
         val legendPreview = findViewById<LinearLayout>(R.id.legendPreview)
@@ -45,6 +79,10 @@ class SettingsActivity : AppCompatActivity() {
 
         manageQuestionsBtn.setOnClickListener {
             startActivity(Intent(this, QuestionsActivity::class.java))
+        }
+
+        importBtn.setOnClickListener {
+            importFilePicker.launch(arrayOf("application/json", "*/*"))
         }
 
         exportBtn.setOnClickListener {
