@@ -1,7 +1,6 @@
 package us.slooker.moodpixels.ui.setup
 
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
@@ -17,7 +16,6 @@ import us.slooker.moodpixels.ui.dialogs.ColorPickerDialog
 import us.slooker.moodpixels.ui.main.MainActivity
 
 class LegendSetupActivity : AppCompatActivity() {
-
     private val viewModel: LegendSetupViewModel by viewModels()
     private lateinit var adapter: LegendAdapter
     private lateinit var recyclerView: RecyclerView
@@ -35,12 +33,12 @@ class LegendSetupActivity : AppCompatActivity() {
         val addFab = findViewById<FloatingActionButton>(R.id.addMoodFab)
         doneButton = findViewById(R.id.doneButton)
 
-        // Load existing entries for edit mode before creating the adapter
+        // Load existing entries (defaults on first install) before creating the adapter
+        viewModel.loadExisting()
         if (isEditMode) {
             titleView.text = "Edit Your Legend"
             subtitleView.text = "Update your mood colors and names."
             doneButton.text = "Save Changes"
-            viewModel.loadExisting()
         } else {
             subtitleView.text = "On this screen, choose a color and choose a mood to match that color. " +
                 "We'll be using those colors as \"pixels\" to track your mood each hour, day, week or month. " +
@@ -49,24 +47,25 @@ class LegendSetupActivity : AppCompatActivity() {
 
         // Give the adapter its own copy so it is the sole owner of this list
         val initialEntries = viewModel.entries.value?.toMutableList() ?: mutableListOf()
-        adapter = LegendAdapter(
-            entries = initialEntries,
-            onColorClick = { index, current -> showColorPicker(index, current) },
-            onRemove = { index ->
-                // Adapter removes from its own list; ViewModel is not touched here
-                adapter.removeAt(index)
-                updateDoneButton()
-            },
-            onNameChanged = { _, _ ->
-                updateDoneButton()
-            }
-        )
+        adapter =
+            LegendAdapter(
+                entries = initialEntries,
+                onColorClick = { index, current -> showColorPicker(index, current) },
+                onRemove = { index ->
+                    // Adapter removes from its own list; ViewModel is not touched here
+                    adapter.removeAt(index)
+                    updateDoneButton()
+                },
+                onNameChanged = { _, _ ->
+                    updateDoneButton()
+                },
+            )
 
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = adapter
 
         addFab.setOnClickListener {
-            val newEntry = LegendEntry(colorValue = Color.GRAY, moodName = "")
+            val newEntry = LegendEntry(colorValue = randomColor(), moodName = "")
             adapter.addEntry(newEntry)
             recyclerView.scrollToPosition(adapter.itemCount - 1)
             updateDoneButton()
@@ -88,7 +87,11 @@ class LegendSetupActivity : AppCompatActivity() {
         updateDoneButton()
     }
 
-    private fun showColorPicker(index: Int, currentColor: Int) {
+    private fun showColorPicker(
+        index: Int,
+        currentColor: Int,
+    ) {
+        if (supportFragmentManager.findFragmentByTag("color_picker") != null) return
         val dialog = ColorPickerDialog.newInstance(currentColor)
         dialog.onColorSelected = { color ->
             adapter.updateColor(index, color)
@@ -100,8 +103,13 @@ class LegendSetupActivity : AppCompatActivity() {
         doneButton.isEnabled = isAdapterValid(adapter.getCurrentEntries())
     }
 
-    private fun isAdapterValid(entries: List<LegendEntry>): Boolean =
-        entries.isNotEmpty() && entries.all { it.moodName.isNotBlank() }
+    private fun isAdapterValid(entries: List<LegendEntry>): Boolean = entries.isNotEmpty() && entries.all { it.moodName.isNotBlank() }
+
+    private fun randomColor(): Int {
+        val hue = (0..359).random().toFloat()
+        val hsv = floatArrayOf(hue, 0.7f, 0.85f)
+        return android.graphics.Color.HSVToColor(hsv)
+    }
 
     companion object {
         const val EXTRA_EDIT_MODE = "edit_mode"

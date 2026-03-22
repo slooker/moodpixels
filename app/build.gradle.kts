@@ -1,4 +1,28 @@
 import java.util.Properties
+import java.io.FileInputStream
+import java.io.File
+
+val versionPropsFile = rootProject.file("version.properties")
+val versionProps = Properties()
+if (versionPropsFile.exists()) {
+    versionProps.load(FileInputStream(versionPropsFile))
+}
+
+val isReleaseBuild = gradle.startParameter.taskNames.any {
+    (it.contains("bundle", ignoreCase = true) || it.contains("assemble", ignoreCase = true)) &&
+            it.contains("release", ignoreCase = true)
+}
+if (isReleaseBuild) {
+    val newCode = ((versionProps["VERSION_CODE"] as String?)?.toInt() ?: 0) + 1
+    versionProps["VERSION_CODE"] = newCode.toString()
+    versionProps.store(versionPropsFile.outputStream(), null)
+}
+
+val appVersionCode = (versionProps["VERSION_CODE"] as String?)?.toInt() ?: 1
+val appPackageName = "us.slooker.moodpixels"
+
+// Controls filename and output-metadata.json — must be before plugins {}
+base.archivesName.set("moodpixels-v${appVersionCode}")
 
 plugins {
     alias(libs.plugins.android.application)
@@ -12,35 +36,16 @@ val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) load(keystorePropertiesFile.inputStream())
 }
 
-// Auto-increment versionCode on every release build
-val versionPropsFile = rootProject.file("version.properties")
-val versionProps = Properties().apply {
-    if (versionPropsFile.exists()) load(versionPropsFile.inputStream())
-}
-val isReleaseBuild = gradle.startParameter.taskNames.any {
-    it.contains("bundleRelease", ignoreCase = true) ||
-    it.contains("assembleRelease", ignoreCase = true)
-}
-val appVersionCode = versionProps.getProperty("versionCode", "1").toInt().let { code ->
-    if (isReleaseBuild) {
-        val next = code + 1
-        versionProps["versionCode"] = next.toString()
-        versionPropsFile.writer().use { versionProps.store(it, null) }
-        next
-    } else code
-}
-val appVersionName: String = versionProps.getProperty("versionName", "1.0")
-
 android {
-    namespace = "us.slooker.moodpixels"
+    namespace = appPackageName
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "us.slooker.moodpixels"
+        applicationId = appPackageName
         minSdk = 24
         targetSdk = 35
         versionCode = appVersionCode
-        versionName = appVersionName
+        versionName = "1.0.$appVersionCode"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -75,6 +80,14 @@ android {
     }
     buildFeatures {
         viewBinding = true
+    }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "moodpixels-v${variant.versionCode}-${variant.buildType.name}.apk"
+        }
     }
 }
 

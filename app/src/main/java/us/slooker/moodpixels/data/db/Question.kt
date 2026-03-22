@@ -17,5 +17,5 @@ data class Question(
     @ColumnInfo(name = "notify_hour") val notifyHour: Int = 9,
     @ColumnInfo(name = "notify_minute") val notifyMinute: Int = 0,
     @ColumnInfo(name = "is_active") val isActive: Boolean = true,
-    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis()
+    @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
 )

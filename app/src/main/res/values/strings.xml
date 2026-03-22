@@ -2,4 +2,5 @@
     <string name="app_name">Mood Pixels</string>
     <string name="menu_settings">Settings</string>
     <string name="menu_export">Export</string>
+    <string name="about_text">Hey, I\'m Shawn — a solo neurodiverse developer running Feature Creep Labs and building apps I actually use every day.\n\nWhat started as small ideas turned into tools for mood tracking, music ownership, and better game nights.\n\nIf something I\'ve built has helped you, supporting here helps me keep improving them—and yes, probably adding \"just one more feature.\"</string>
 </resources>

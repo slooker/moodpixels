@@ -20,7 +20,6 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 class MoodEntryDialog : DialogFragment() {
-
     var date: String = ""
     var hour: Int = 0
     var existingEntry: MoodEntry? = null
@@ -41,12 +40,13 @@ class MoodEntryDialog : DialogFragment() {
         val dateObj = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE)
         val dayName = dateObj.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
         val monthDay = dateObj.format(DateTimeFormatter.ofPattern("MMM d"))
-        titleView.text = if (hour >= 0) {
-            val amPm = if (hour < 12) "${if (hour == 0) 12 else hour}:00 AM" else "${if (hour == 12) 12 else hour - 12}:00 PM"
-            "$dayName, $monthDay — $amPm"
-        } else {
-            "$dayName, $monthDay"
-        }
+        titleView.text =
+            if (hour >= 0) {
+                val amPm = if (hour < 12) "${if (hour == 0) 12 else hour}:00 AM" else "${if (hour == 12) 12 else hour - 12}:00 PM"
+                "$dayName, $monthDay — $amPm"
+            } else {
+                "$dayName, $monthDay"
+            }
 
         // Pre-select existing entry's legend item
         val existing = existingEntry
@@ -60,8 +60,10 @@ class MoodEntryDialog : DialogFragment() {
 
         // Legend swatches
         legendEntries.forEach { legend ->
-            val item = LayoutInflater.from(requireContext())
-                .inflate(R.layout.item_legend_picker, legendContainer, false)
+            val item =
+                LayoutInflater
+                    .from(requireContext())
+                    .inflate(R.layout.item_legend_picker, legendContainer, false)
             val swatch = item.findViewById<View>(R.id.swatchView)
             val label = item.findViewById<TextView>(R.id.moodLabel)
 
@@ -77,16 +79,20 @@ class MoodEntryDialog : DialogFragment() {
                         (bg as? GradientDrawable)?.setStroke(0, Color.TRANSPARENT)
                     }
                 }
-                (swatch.background as? GradientDrawable)?.setStroke(4,
-                    if (isDarkColor(legend.colorValue)) Color.WHITE else Color.parseColor("#333333"))
+                (swatch.background as? GradientDrawable)?.setStroke(
+                    4,
+                    if (isDarkColor(legend.colorValue)) Color.WHITE else Color.parseColor("#333333"),
+                )
             }
 
             item.setOnClickListener { updateSelection(legend) }
 
             // Highlight the currently selected one
             if (legend == selectedLegendEntry) {
-                (swatch.background as? GradientDrawable)?.setStroke(4,
-                    if (isDarkColor(legend.colorValue)) Color.WHITE else Color.parseColor("#333333"))
+                (swatch.background as? GradientDrawable)?.setStroke(
+                    4,
+                    if (isDarkColor(legend.colorValue)) Color.WHITE else Color.parseColor("#333333"),
+                )
             }
 
             legendContainer.addView(item)
@@ -99,21 +105,22 @@ class MoodEntryDialog : DialogFragment() {
             dismiss()
         }
 
-        return AlertDialog.Builder(requireContext())
+        return AlertDialog
+            .Builder(requireContext())
             .setView(view)
             .setPositiveButton("Save") { _, _ ->
                 val legend = selectedLegendEntry ?: return@setPositiveButton
-                val entry = MoodEntry(
-                    id = existingEntry?.id ?: 0,
-                    entryDate = date,
-                    hourSlot = hour,
-                    colorValue = legend.colorValue,
-                    moodName = legend.moodName,
-                    note = noteInput.text.toString().ifBlank { null }
-                )
+                val entry =
+                    MoodEntry(
+                        id = existingEntry?.id ?: 0,
+                        entryDate = date,
+                        hourSlot = hour,
+                        colorValue = legend.colorValue,
+                        moodName = legend.moodName,
+                        note = noteInput.text.toString().ifBlank { null },
+                    )
                 onSave?.invoke(entry)
-            }
-            .setNegativeButton("Cancel", null)
+            }.setNegativeButton("Cancel", null)
             .create()
     }
 

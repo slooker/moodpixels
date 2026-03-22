@@ -9,8 +9,10 @@ import kotlinx.coroutines.launch
 import us.slooker.moodpixels.MoodPixelsApp
 
 class QuestionAlarmReceiver : BroadcastReceiver() {
-
-    override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(
+        context: Context,
+        intent: Intent,
+    ) {
         val questionId = intent.getLongExtra(NotificationHelper.EXTRA_QUESTION_ID, -1L)
         if (questionId == -1L) return
 

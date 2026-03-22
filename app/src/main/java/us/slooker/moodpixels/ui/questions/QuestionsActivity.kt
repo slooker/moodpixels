@@ -27,13 +27,13 @@ import us.slooker.moodpixels.R
 import us.slooker.moodpixels.data.db.Question
 
 class QuestionsActivity : AppCompatActivity() {
-
     private val viewModel: QuestionsViewModel by viewModels()
     private lateinit var adapter: QuestionAdapter
 
-    private val notifPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { /* proceed regardless */ }
+    private val notifPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { /* proceed regardless */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,11 +47,12 @@ class QuestionsActivity : AppCompatActivity() {
         requestNotificationPermissionIfNeeded()
         requestExactAlarmPermissionIfNeeded()
 
-        adapter = QuestionAdapter(
-            onToggle = { question -> viewModel.toggleActive(question) },
-            onEdit = { question -> showEditDialog(question) },
-            onDelete = { question -> confirmDelete(question) }
-        )
+        adapter =
+            QuestionAdapter(
+                onToggle = { question -> viewModel.toggleActive(question) },
+                onEdit = { question -> showEditDialog(question) },
+                onDelete = { question -> confirmDelete(question) },
+            )
 
         val recycler = findViewById<RecyclerView>(R.id.questionsRecycler)
         recycler.layoutManager = LinearLayoutManager(this)
@@ -71,17 +72,30 @@ class QuestionsActivity : AppCompatActivity() {
         val scheduleGroup = view.findViewById<RadioGroup>(R.id.scheduleTypeGroup)
         val daysContainer = view.findViewById<android.widget.LinearLayout>(R.id.daysContainer)
         val timeDisplay = view.findViewById<TextView>(R.id.timeDisplay)
-        val dayCheckboxIds = listOf(
-            R.id.cbMon, R.id.cbTue, R.id.cbWed, R.id.cbThu,
-            R.id.cbFri, R.id.cbSat, R.id.cbSun
-        )
+        val dayCheckboxIds =
+            listOf(
+                R.id.cbMon,
+                R.id.cbTue,
+                R.id.cbWed,
+                R.id.cbThu,
+                R.id.cbFri,
+                R.id.cbSat,
+                R.id.cbSun,
+            )
 
         var selectedHour = existing?.notifyHour ?: 9
         var selectedMinute = existing?.notifyMinute ?: 0
 
         fun updateTimeDisplay() {
             val amPm = if (selectedHour < 12) "AM" else "PM"
-            val h = if (selectedHour == 0) 12 else if (selectedHour > 12) selectedHour - 12 else selectedHour
+            val h =
+                if (selectedHour == 0) {
+                    12
+                } else if (selectedHour > 12) {
+                    selectedHour - 12
+                } else {
+                    selectedHour
+                }
             timeDisplay.text = "%d:%02d %s".format(h, selectedMinute, amPm)
         }
 
@@ -110,49 +124,59 @@ class QuestionsActivity : AppCompatActivity() {
 
         timeDisplay.setOnClickListener {
             TimePickerDialog(this, { _, h, m ->
-                selectedHour = h; selectedMinute = m; updateTimeDisplay()
+                selectedHour = h
+                selectedMinute = m
+                updateTimeDisplay()
             }, selectedHour, selectedMinute, false).show()
         }
 
-        AlertDialog.Builder(this)
+        AlertDialog
+            .Builder(this)
             .setTitle(if (existing == null) "Add Question" else "Edit Question")
             .setView(view)
             .setPositiveButton("Save") { _, _ ->
                 val text = textInput.text.toString().trim()
                 if (text.isEmpty()) return@setPositiveButton
 
-                val answerType = when (answerTypeGroup.checkedRadioButtonId) {
-                    R.id.radioYesNo -> "YES_NO"
-                    R.id.radioNumber -> "NUMBER"
-                    else -> "TEXT"
-                }
-                val scheduleType = if (scheduleGroup.checkedRadioButtonId == R.id.radioSpecificDays)
-                    "SPECIFIC_DAYS" else "DAILY"
+                val answerType =
+                    when (answerTypeGroup.checkedRadioButtonId) {
+                        R.id.radioYesNo -> "YES_NO"
+                        R.id.radioNumber -> "NUMBER"
+                        else -> "TEXT"
+                    }
+                val scheduleType =
+                    if (scheduleGroup.checkedRadioButtonId == R.id.radioSpecificDays) {
+                        "SPECIFIC_DAYS"
+                    } else {
+                        "DAILY"
+                    }
 
                 var daysMask = 127
                 if (scheduleType == "SPECIFIC_DAYS") {
-                    daysMask = dayCheckboxIds.foldIndexed(0) { i, acc, id ->
-                        if (view.findViewById<CheckBox>(id).isChecked) acc or (1 shl i) else acc
-                    }
+                    daysMask =
+                        dayCheckboxIds.foldIndexed(0) { i, acc, id ->
+                            if (view.findViewById<CheckBox>(id).isChecked) acc or (1 shl i) else acc
+                        }
                     if (daysMask == 0) daysMask = 127 // fallback to daily if nothing selected
                 }
 
-                val question = (existing ?: Question(text = "")).copy(
-                    text = text,
-                    answerType = answerType,
-                    scheduleType = scheduleType,
-                    scheduleDays = daysMask,
-                    notifyHour = selectedHour,
-                    notifyMinute = selectedMinute
-                )
+                val question =
+                    (existing ?: Question(text = "")).copy(
+                        text = text,
+                        answerType = answerType,
+                        scheduleType = scheduleType,
+                        scheduleDays = daysMask,
+                        notifyHour = selectedHour,
+                        notifyMinute = selectedMinute,
+                    )
                 viewModel.save(question)
-            }
-            .setNegativeButton("Cancel", null)
+            }.setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun confirmDelete(question: Question) {
-        AlertDialog.Builder(this)
+        AlertDialog
+            .Builder(this)
             .setTitle("Delete Question")
             .setMessage("Delete \"${question.text}\"? All answers will also be deleted.")
             .setPositiveButton("Delete") { _, _ -> viewModel.delete(question) }
@@ -174,21 +198,20 @@ class QuestionsActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = getSystemService(AlarmManager::class.java)
             if (!alarmManager.canScheduleExactAlarms()) {
-                AlertDialog.Builder(this)
+                AlertDialog
+                    .Builder(this)
                     .setTitle("Enable precise notifications")
                     .setMessage(
                         "For questions to notify you at the exact time you set, " +
-                        "please allow MoodPixels to schedule exact alarms in the next screen."
-                    )
-                    .setPositiveButton("Open Settings") { _, _ ->
+                            "please allow MoodPixels to schedule exact alarms in the next screen.",
+                    ).setPositiveButton("Open Settings") { _, _ ->
                         startActivity(
                             Intent(
                                 Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-                                Uri.parse("package:$packageName")
-                            )
+                                Uri.parse("package:$packageName"),
+                            ),
                         )
-                    }
-                    .setNegativeButton("Not now", null)
+                    }.setNegativeButton("Not now", null)
                     .show()
             }
         }

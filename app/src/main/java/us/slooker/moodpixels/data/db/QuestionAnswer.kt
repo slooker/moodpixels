@@ -8,16 +8,18 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "question_answers",
-    foreignKeys = [ForeignKey(
-        entity = Question::class,
-        parentColumns = ["id"],
-        childColumns = ["question_id"],
-        onDelete = ForeignKey.CASCADE
-    )],
+    foreignKeys = [
+        ForeignKey(
+            entity = Question::class,
+            parentColumns = ["id"],
+            childColumns = ["question_id"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
     indices = [
         Index("question_id"),
-        Index("answered_at")
-    ]
+        Index("answered_at"),
+    ],
 )
 data class QuestionAnswer(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -27,5 +29,5 @@ data class QuestionAnswer(
     @ColumnInfo(name = "answer_text") val answerText: String? = null,
     @ColumnInfo(name = "answer_bool") val answerBool: Boolean? = null,
     @ColumnInfo(name = "answer_number") val answerNumber: Double? = null,
-    @ColumnInfo(name = "answered_at") val answeredAt: Long = System.currentTimeMillis()
+    @ColumnInfo(name = "answered_at") val answeredAt: Long = System.currentTimeMillis(),
 )

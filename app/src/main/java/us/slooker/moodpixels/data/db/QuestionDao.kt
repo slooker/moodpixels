@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface QuestionDao {
-
     @Query("SELECT * FROM questions ORDER BY created_at ASC")
     fun getAllQuestions(): Flow<List<Question>>
 

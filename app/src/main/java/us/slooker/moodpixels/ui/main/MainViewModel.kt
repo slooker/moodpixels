@@ -11,11 +11,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import us.slooker.moodpixels.MoodPixelsApp
 import us.slooker.moodpixels.data.db.MoodEntry
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.temporal.TemporalAdjusters
 
-class MainViewModel(app: Application) : AndroidViewModel(app) {
-
+class MainViewModel(
+    app: Application,
+) : AndroidViewModel(app) {
     private val repo = (app as MoodPixelsApp).repository
     val legendPrefs = (app as MoodPixelsApp).legendPrefs
 
@@ -29,55 +32,67 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Emits the current date range as a Pair<start, end> ISO strings */
     private val _dateRange = MutableLiveData(currentRange())
+    val dateRange: LiveData<Pair<String, String>> = _dateRange
 
     /** Map of date-string -> (hourSlot -> MoodEntry) for fast View lookups */
     val entriesMap: LiveData<Map<String, Map<Int, MoodEntry>>> =
         _dateRange.switchMap { (start, end) ->
-            repo.getEntriesForRange(start, end).map { list ->
-                list.groupBy { it.entryDate }
-                    .mapValues { (_, entries) -> entries.associateBy { it.hourSlot } }
-            }.asLiveData()
+            repo
+                .getEntriesForRange(start, end)
+                .map { list ->
+                    list
+                        .groupBy { it.entryDate }
+                        .mapValues { (_, entries) -> entries.associateBy { it.hourSlot } }
+                }.asLiveData()
         }
 
     fun setViewMode(mode: CalendarViewMode) {
         _viewMode.value = mode
+        if (mode == CalendarViewMode.WEEK) {
+            _anchorDate.value = weekStart(_anchorDate.value ?: LocalDate.now())
+        }
         refreshRange()
     }
 
     fun shiftPeriod(delta: Int) {
         val current = _anchorDate.value ?: LocalDate.now()
-        _anchorDate.value = when (_viewMode.value) {
-            CalendarViewMode.DAY -> current.plusDays(delta.toLong())
-            CalendarViewMode.THREE_DAY -> current.plusDays(delta * 3L)
-            CalendarViewMode.WEEK -> current.plusWeeks(delta.toLong())
-            CalendarViewMode.MONTH -> current.plusMonths(delta.toLong())
-            CalendarViewMode.YEAR -> current.plusYears(delta.toLong())
-            null -> current
-        }
+        _anchorDate.value =
+            when (_viewMode.value) {
+                CalendarViewMode.DAY -> current.plusDays(delta.toLong())
+                CalendarViewMode.THREE_DAY -> current.plusDays(delta * 3L)
+                CalendarViewMode.WEEK -> current.plusWeeks(delta.toLong())
+                CalendarViewMode.MONTH -> current.plusMonths(delta.toLong())
+                CalendarViewMode.YEAR -> current.plusYears(delta.toLong())
+                null -> current
+            }
         refreshRange()
     }
 
     fun goToToday() {
-        _anchorDate.value = LocalDate.now()
+        val today = LocalDate.now()
+        _anchorDate.value = if (_viewMode.value == CalendarViewMode.WEEK) weekStart(today) else today
         refreshRange()
     }
 
     fun setAnchorDate(date: LocalDate) {
-        _anchorDate.value = date
+        _anchorDate.value = if (_viewMode.value == CalendarViewMode.WEEK) weekStart(date) else date
         refreshRange()
     }
 
-    fun upsertEntry(entry: MoodEntry) = viewModelScope.launch {
-        repo.upsertEntry(entry)
-    }
+    fun upsertEntry(entry: MoodEntry) =
+        viewModelScope.launch {
+            repo.upsertEntry(entry)
+        }
 
-    fun deleteEntry(entry: MoodEntry) = viewModelScope.launch {
-        repo.deleteEntry(entry)
-    }
+    fun deleteEntry(entry: MoodEntry) =
+        viewModelScope.launch {
+            repo.deleteEntry(entry)
+        }
 
-    fun deleteAll() = viewModelScope.launch {
-        repo.deleteAll()
-    }
+    fun deleteAll() =
+        viewModelScope.launch {
+            repo.deleteAll()
+        }
 
     suspend fun getAllEntries() = repo.getAllEntries()
 
@@ -90,9 +105,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 "${anchor.format(DateTimeFormatter.ofPattern("MMM d"))} – ${end.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
             }
             CalendarViewMode.WEEK -> {
-                val monday = anchor.with(java.time.DayOfWeek.MONDAY)
-                val sunday = monday.plusDays(6)
-                "${monday.format(DateTimeFormatter.ofPattern("MMM d"))} – ${sunday.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
+                val start = weekStart(anchor)
+                val end = start.plusDays(6)
+                "${start.format(DateTimeFormatter.ofPattern("MMM d"))} – ${end.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))}"
             }
             CalendarViewMode.MONTH -> anchor.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
             CalendarViewMode.YEAR -> anchor.format(DateTimeFormatter.ofPattern("yyyy"))
@@ -110,8 +125,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             CalendarViewMode.DAY -> anchor.fmt() to anchor.fmt()
             CalendarViewMode.THREE_DAY -> anchor.fmt() to anchor.plusDays(2).fmt()
             CalendarViewMode.WEEK -> {
-                val monday = anchor.with(java.time.DayOfWeek.MONDAY)
-                monday.fmt() to monday.plusDays(6).fmt()
+                val start = weekStart(anchor)
+                start.fmt() to start.plusDays(6).fmt()
             }
             CalendarViewMode.MONTH -> {
                 anchor.withDayOfMonth(1).fmt() to
@@ -123,6 +138,13 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    private fun weekStart(date: LocalDate): LocalDate =
+        if (legendPrefs.getWeekStartsSunday()) {
+            date.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY))
+        } else {
+            date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        }
 
     private fun LocalDate.fmt() = format(formatter)
 }

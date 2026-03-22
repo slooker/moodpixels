@@ -20,6 +20,7 @@ import us.slooker.moodpixels.R
 import us.slooker.moodpixels.data.db.MoodEntry
 import us.slooker.moodpixels.export.JsonExporter
 import us.slooker.moodpixels.ui.dialogs.MoodEntryDialog
+import us.slooker.moodpixels.ui.reports.ReportsActivity
 import us.slooker.moodpixels.ui.settings.SettingsActivity
 import us.slooker.moodpixels.ui.setup.LegendSetupActivity
 import us.slooker.moodpixels.ui.views.MonthView
@@ -29,7 +30,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class MainActivity : AppCompatActivity() {
-
     private val viewModel: MainViewModel by viewModels()
     private lateinit var calendarContainer: FrameLayout
     private lateinit var dateLabel: TextView
@@ -71,13 +71,23 @@ class MainActivity : AppCompatActivity() {
         observeViewModel()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Re-create the calendar view in case week-start setting changed in Settings
+        switchCalendarView(viewModel.viewMode.value ?: CalendarViewMode.MONTH)
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
+    override fun onOptionsItemSelected(item: MenuItem): Boolean =
+        when (item.itemId) {
+            R.id.menu_reports -> {
+                startActivity(Intent(this, ReportsActivity::class.java))
+                true
+            }
             R.id.menu_settings -> {
                 startActivity(Intent(this, SettingsActivity::class.java))
                 true
@@ -88,28 +98,32 @@ class MainActivity : AppCompatActivity() {
             }
             else -> super.onOptionsItemSelected(item)
         }
-    }
 
     private fun setupTabs() {
         listOf("Day", "3-Day", "Week", "Month", "Year")
             .forEach { tabLayout.addTab(tabLayout.newTab().setText(it)) }
 
-        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-            override fun onTabSelected(tab: TabLayout.Tab) {
-                if (suppressTabCallback) return
-                val mode = when (tab.position) {
-                    0 -> CalendarViewMode.DAY
-                    1 -> CalendarViewMode.THREE_DAY
-                    2 -> CalendarViewMode.WEEK
-                    3 -> CalendarViewMode.MONTH
-                    4 -> CalendarViewMode.YEAR
-                    else -> CalendarViewMode.MONTH
+        tabLayout.addOnTabSelectedListener(
+            object : TabLayout.OnTabSelectedListener {
+                override fun onTabSelected(tab: TabLayout.Tab) {
+                    if (suppressTabCallback) return
+                    val mode =
+                        when (tab.position) {
+                            0 -> CalendarViewMode.DAY
+                            1 -> CalendarViewMode.THREE_DAY
+                            2 -> CalendarViewMode.WEEK
+                            3 -> CalendarViewMode.MONTH
+                            4 -> CalendarViewMode.YEAR
+                            else -> CalendarViewMode.MONTH
+                        }
+                    viewModel.setViewMode(mode)
                 }
-                viewModel.setViewMode(mode)
-            }
-            override fun onTabUnselected(tab: TabLayout.Tab) {}
-            override fun onTabReselected(tab: TabLayout.Tab) {}
-        })
+
+                override fun onTabUnselected(tab: TabLayout.Tab) {}
+
+                override fun onTabReselected(tab: TabLayout.Tab) {}
+            },
+        )
 
         // Default to Month view (index 3)
         tabLayout.getTabAt(3)?.select()
@@ -148,66 +162,79 @@ class MainActivity : AppCompatActivity() {
 
         when (mode) {
             CalendarViewMode.DAY, CalendarViewMode.THREE_DAY, CalendarViewMode.WEEK -> {
-                val timeGrid = TimeGridView(this).apply {
-                    columnCount = when (mode) {
-                        CalendarViewMode.DAY -> 1
-                        CalendarViewMode.THREE_DAY -> 3
-                        else -> 7
+                val timeGrid =
+                    TimeGridView(this).apply {
+                        columnCount =
+                            when (mode) {
+                                CalendarViewMode.DAY -> 1
+                                CalendarViewMode.THREE_DAY -> 3
+                                else -> 7
+                            }
+                        textScale = (application as MoodPixelsApp).legendPrefs.getTextScale()
+                        anchorDate = anchor
+                        this.entriesMap = entriesMap
+                        onSlotClick = { date, hour, existing ->
+                            showMoodEntryDialog(date, hour, existing)
+                        }
                     }
-                    anchorDate = anchor
-                    this.entriesMap = entriesMap
-                    onSlotClick = { date, hour, existing ->
-                        showMoodEntryDialog(date, hour, existing)
-                    }
-                }
                 currentTimeGridView = timeGrid
 
-                val scroll = ScrollView(this).apply {
-                    layoutParams = FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    )
-                    addView(timeGrid)
-                }
+                val scroll =
+                    ScrollView(this).apply {
+                        layoutParams =
+                            FrameLayout.LayoutParams(
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                            )
+                        addView(timeGrid)
+                    }
                 calendarContainer.addView(scroll)
             }
 
             CalendarViewMode.MONTH -> {
-                val monthView = MonthView(this).apply {
-                    layoutParams = FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    )
-                    anchorDate = anchor
-                    this.entriesMap = entriesMap
-                    onSlotClick = { date, hour, _ ->
-                        if (hour == -1) navigateToDayView(date)
+                val monthView =
+                    MonthView(this).apply {
+                        layoutParams =
+                            FrameLayout.LayoutParams(
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                            )
+                        weekStartsSunday = (application as MoodPixelsApp).legendPrefs.getWeekStartsSunday()
+                        anchorDate = anchor
+                        this.entriesMap = entriesMap
+                        onSlotClick = { date, hour, _ ->
+                            if (hour == -1) navigateToDayView(date)
+                        }
                     }
-                }
                 currentMonthView = monthView
                 calendarContainer.addView(monthView)
             }
 
             CalendarViewMode.YEAR -> {
-                val yearView = YearView(this).apply {
-                    layoutParams = FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.WRAP_CONTENT
-                    )
-                    anchorDate = anchor
-                    this.entriesMap = entriesMap
-                    onSlotClick = { date, hour, _ ->
-                        if (hour == -2) navigateToMonthView(date)
+                val yearView =
+                    YearView(this).apply {
+                        layoutParams =
+                            FrameLayout.LayoutParams(
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                FrameLayout.LayoutParams.WRAP_CONTENT,
+                            )
+                        weekStartsSunday = (application as MoodPixelsApp).legendPrefs.getWeekStartsSunday()
+                        anchorDate = anchor
+                        this.entriesMap = entriesMap
+                        onSlotClick = { date, hour, _ ->
+                            if (hour == -2) navigateToMonthView(date)
+                        }
                     }
-                }
                 currentYearView = yearView
-                val scroll = ScrollView(this).apply {
-                    layoutParams = FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT
-                    )
-                    addView(yearView)
-                }
+                val scroll =
+                    ScrollView(this).apply {
+                        layoutParams =
+                            FrameLayout.LayoutParams(
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                                FrameLayout.LayoutParams.MATCH_PARENT,
+                            )
+                        addView(yearView)
+                    }
                 calendarContainer.addView(scroll)
             }
         }
@@ -231,35 +258,42 @@ class MainActivity : AppCompatActivity() {
         viewModel.setViewMode(CalendarViewMode.MONTH)
     }
 
-    private fun showMoodEntryDialog(date: String, hour: Int, existing: MoodEntry?) {
+    private fun showMoodEntryDialog(
+        date: String,
+        hour: Int,
+        existing: MoodEntry?,
+    ) {
         val legend = (application as MoodPixelsApp).legendPrefs.getLegend()
         if (legend.isEmpty()) return
 
-        MoodEntryDialog().apply {
-            this.date = date
-            this.hour = hour
-            this.existingEntry = existing
-            this.legendEntries = legend
-            onSave = { entry -> viewModel.upsertEntry(entry) }
-            onDelete = { entry -> viewModel.deleteEntry(entry) }
-        }.show(supportFragmentManager, "mood_entry")
+        MoodEntryDialog()
+            .apply {
+                this.date = date
+                this.hour = hour
+                this.existingEntry = existing
+                this.legendEntries = legend
+                onSave = { entry -> viewModel.upsertEntry(entry) }
+                onDelete = { entry -> viewModel.deleteEntry(entry) }
+            }.show(supportFragmentManager, "mood_entry")
     }
 
     private fun exportAndShare() {
         lifecycleScope.launch {
             val app = application as MoodPixelsApp
+            val legend = app.legendPrefs.getLegend()
             val entries = viewModel.getAllEntries()
             val questions = app.questionRepository.getAllQuestionsSnapshot()
             val answers = app.questionRepository.getAllAnswers()
             if (entries.isEmpty() && questions.isEmpty()) {
-                AlertDialog.Builder(this@MainActivity)
+                AlertDialog
+                    .Builder(this@MainActivity)
                     .setTitle("No Data")
                     .setMessage("You haven't logged any moods yet.")
                     .setPositiveButton("OK", null)
                     .show()
                 return@launch
             }
-            val shareIntent = JsonExporter.buildShareIntent(this@MainActivity, entries, questions, answers)
+            val shareIntent = JsonExporter.buildShareIntent(this@MainActivity, legend, entries, questions, answers)
             startActivity(Intent.createChooser(shareIntent, "Export Mood Data"))
         }
     }

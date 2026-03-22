@@ -5,8 +5,9 @@ import us.slooker.moodpixels.data.db.AppDatabase
 import us.slooker.moodpixels.data.db.Question
 import us.slooker.moodpixels.data.db.QuestionAnswer
 
-class QuestionRepository(db: AppDatabase) {
-
+class QuestionRepository(
+    db: AppDatabase,
+) {
     private val dao = db.questionDao()
 
     fun getAllQuestions(): Flow<List<Question>> = dao.getAllQuestions()
@@ -25,17 +26,16 @@ class QuestionRepository(db: AppDatabase) {
 
     suspend fun saveAnswer(answer: QuestionAnswer) = dao.insertAnswer(answer)
 
-    suspend fun getAnswersForQuestion(questionId: Long): List<QuestionAnswer> =
-        dao.getAnswersForQuestion(questionId)
+    suspend fun getAnswersForQuestion(questionId: Long): List<QuestionAnswer> = dao.getAnswersForQuestion(questionId)
 
     suspend fun getAllAnswers(): List<QuestionAnswer> = dao.getAllAnswersSnapshot()
 
     companion object {
-        @Volatile private var INSTANCE: QuestionRepository? = null
+        @Volatile private var instance: QuestionRepository? = null
 
         fun getInstance(db: AppDatabase): QuestionRepository =
-            INSTANCE ?: synchronized(this) {
-                INSTANCE ?: QuestionRepository(db).also { INSTANCE = it }
+            instance ?: synchronized(this) {
+                instance ?: QuestionRepository(db).also { instance = it }
             }
     }
 }

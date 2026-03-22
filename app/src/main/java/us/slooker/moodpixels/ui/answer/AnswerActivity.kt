@@ -13,7 +13,6 @@ import us.slooker.moodpixels.R
 import us.slooker.moodpixels.notifications.NotificationHelper
 
 class AnswerActivity : AppCompatActivity() {
-
     private val viewModel: AnswerViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,7 +25,10 @@ class AnswerActivity : AppCompatActivity() {
         toolbar.setNavigationOnClickListener { finish() }
 
         val questionId = intent.getLongExtra(NotificationHelper.EXTRA_QUESTION_ID, -1L)
-        if (questionId == -1L) { finish(); return }
+        if (questionId == -1L) {
+            finish()
+            return
+        }
 
         val questionText = findViewById<TextView>(R.id.questionText)
         val textLayout = findViewById<LinearLayout>(R.id.textAnswerLayout)
@@ -42,7 +44,10 @@ class AnswerActivity : AppCompatActivity() {
         viewModel.load(questionId)
 
         viewModel.question.observe(this) { question ->
-            if (question == null) { finish(); return@observe }
+            if (question == null) {
+                finish()
+                return@observe
+            }
             questionText.text = question.text
 
             textLayout.visibility = View.GONE

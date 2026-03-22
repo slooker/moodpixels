@@ -9,18 +9,23 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MoodEntryDao {
-
     @Query("SELECT * FROM mood_entries WHERE entry_date = :date ORDER BY hour_slot ASC")
     fun getEntriesForDate(date: String): Flow<List<MoodEntry>>
 
     @Query("SELECT * FROM mood_entries WHERE entry_date BETWEEN :start AND :end ORDER BY entry_date ASC, hour_slot ASC")
-    fun getEntriesForRange(start: String, end: String): Flow<List<MoodEntry>>
+    fun getEntriesForRange(
+        start: String,
+        end: String,
+    ): Flow<List<MoodEntry>>
 
     @Query("SELECT * FROM mood_entries ORDER BY entry_date ASC, hour_slot ASC")
     suspend fun getAllEntriesSnapshot(): List<MoodEntry>
 
     @Query("DELETE FROM mood_entries WHERE entry_date = :date AND hour_slot = :hour")
-    suspend fun deleteSlot(date: String, hour: Int)
+    suspend fun deleteSlot(
+        date: String,
+        hour: Int,
+    )
 
     @Insert
     suspend fun insert(entry: MoodEntry): Long

@@ -10,8 +10,8 @@
         <item name="colorSecondaryVariant">@color/teal_700</item>
         <item name="colorOnSecondary">@color/black</item>
         <!-- Status bar color. -->
-        <item name="android:statusBarColor">?attr/colorPrimary</item>
-        <item name="android:windowBackground">?attr/colorPrimary</item>
+        <item name="android:statusBarColor">@color/purple_500</item>
+        <item name="android:windowBackground">@color/purple_500</item>
         <!-- Disable the window-level action bar so Toolbar can be used instead -->
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
