@@ -6,6 +6,7 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -27,7 +28,11 @@ class LegendSetupActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_legend_setup)
 
-        val titleView = findViewById<TextView>(R.id.setupTitle)
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(isEditMode)
+        toolbar.setNavigationOnClickListener { finish() }
+
         val subtitleView = findViewById<TextView>(R.id.setupSubtitle)
         recyclerView = findViewById(R.id.legendRecyclerView)
         val addFab = findViewById<FloatingActionButton>(R.id.addMoodFab)
@@ -36,10 +41,11 @@ class LegendSetupActivity : AppCompatActivity() {
         // Load existing entries (defaults on first install) before creating the adapter
         viewModel.loadExisting()
         if (isEditMode) {
-            titleView.text = "Edit Your Legend"
+            supportActionBar?.title = "Edit Legend"
             subtitleView.text = "Update your mood colors and names."
             doneButton.text = "Save Changes"
         } else {
+            supportActionBar?.title = "Create Your Legend"
             subtitleView.text = "On this screen, choose a color and choose a mood to match that color. " +
                 "We'll be using those colors as \"pixels\" to track your mood each hour, day, week or month. " +
                 "You can add or remove as many colors/moods as you like."

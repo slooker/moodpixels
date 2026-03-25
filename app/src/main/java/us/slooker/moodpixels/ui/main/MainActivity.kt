@@ -1,26 +1,29 @@
 package us.slooker.moodpixels.ui.main
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.widget.Toolbar
-import androidx.lifecycle.lifecycleScope
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
+import com.google.android.material.navigation.NavigationView
 import com.google.android.material.tabs.TabLayout
-import kotlinx.coroutines.launch
 import us.slooker.moodpixels.MoodPixelsApp
 import us.slooker.moodpixels.R
 import us.slooker.moodpixels.data.db.MoodEntry
-import us.slooker.moodpixels.export.JsonExporter
 import us.slooker.moodpixels.ui.dialogs.MoodEntryDialog
+import us.slooker.moodpixels.ui.questions.QuestionsActivity
 import us.slooker.moodpixels.ui.reports.ReportsActivity
+import us.slooker.moodpixels.ui.settings.AboutActivity
+import us.slooker.moodpixels.ui.settings.HelpActivity
+import us.slooker.moodpixels.ui.settings.ManageDataActivity
 import us.slooker.moodpixels.ui.settings.SettingsActivity
 import us.slooker.moodpixels.ui.setup.LegendSetupActivity
 import us.slooker.moodpixels.ui.views.MonthView
@@ -34,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var calendarContainer: FrameLayout
     private lateinit var dateLabel: TextView
     private lateinit var tabLayout: TabLayout
+    private lateinit var drawerLayout: DrawerLayout
 
     private var currentTimeGridView: TimeGridView? = null
     private var currentMonthView: MonthView? = null
@@ -54,6 +58,36 @@ class MainActivity : AppCompatActivity() {
 
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
+
+        drawerLayout = findViewById(R.id.drawerLayout)
+        val navView = findViewById<NavigationView>(R.id.navigationView)
+
+        val toggle = ActionBarDrawerToggle(
+            this, drawerLayout, toolbar,
+            R.string.nav_drawer_open,
+            R.string.nav_drawer_close,
+        )
+        drawerLayout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        navView.setNavigationItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_reports -> startActivity(Intent(this, ReportsActivity::class.java))
+                R.id.nav_help -> startActivity(Intent(this, HelpActivity::class.java))
+                R.id.nav_edit_legend -> startActivity(
+                    Intent(this, LegendSetupActivity::class.java).putExtra(LegendSetupActivity.EXTRA_EDIT_MODE, true)
+                )
+                R.id.nav_questions -> startActivity(Intent(this, QuestionsActivity::class.java))
+                R.id.nav_data -> startActivity(Intent(this, ManageDataActivity::class.java))
+                R.id.nav_about -> startActivity(Intent(this, AboutActivity::class.java))
+                R.id.nav_coffee -> startActivity(
+                    Intent(Intent.ACTION_VIEW, Uri.parse("https://buymeacoffee.com/featurecreeplabs"))
+                )
+                R.id.nav_display -> startActivity(Intent(this, SettingsActivity::class.java))
+            }
+            drawerLayout.closeDrawer(GravityCompat.START)
+            true
+        }
 
         calendarContainer = findViewById(R.id.calendarContainer)
         dateLabel = findViewById(R.id.dateLabel)
@@ -77,27 +111,13 @@ class MainActivity : AppCompatActivity() {
         switchCalendarView(viewModel.viewMode.value ?: CalendarViewMode.MONTH)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean =
-        when (item.itemId) {
-            R.id.menu_reports -> {
-                startActivity(Intent(this, ReportsActivity::class.java))
-                true
-            }
-            R.id.menu_settings -> {
-                startActivity(Intent(this, SettingsActivity::class.java))
-                true
-            }
-            R.id.menu_export -> {
-                exportAndShare()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
+    override fun onBackPressed() {
+        if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+            drawerLayout.closeDrawer(GravityCompat.START)
+        } else {
+            super.onBackPressed()
         }
+    }
 
     private fun setupTabs() {
         listOf("Day", "3-Day", "Week", "Month", "Year")
@@ -277,24 +297,4 @@ class MainActivity : AppCompatActivity() {
             }.show(supportFragmentManager, "mood_entry")
     }
 
-    private fun exportAndShare() {
-        lifecycleScope.launch {
-            val app = application as MoodPixelsApp
-            val legend = app.legendPrefs.getLegend()
-            val entries = viewModel.getAllEntries()
-            val questions = app.questionRepository.getAllQuestionsSnapshot()
-            val answers = app.questionRepository.getAllAnswers()
-            if (entries.isEmpty() && questions.isEmpty()) {
-                AlertDialog
-                    .Builder(this@MainActivity)
-                    .setTitle("No Data")
-                    .setMessage("You haven't logged any moods yet.")
-                    .setPositiveButton("OK", null)
-                    .show()
-                return@launch
-            }
-            val shareIntent = JsonExporter.buildShareIntent(this@MainActivity, legend, entries, questions, answers)
-            startActivity(Intent.createChooser(shareIntent, "Export Mood Data"))
-        }
-    }
 }

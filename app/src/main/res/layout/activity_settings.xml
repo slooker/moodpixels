@@ -26,15 +26,6 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Display"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
                 android:text="Theme"
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="4dp" />
@@ -44,7 +35,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="24dp">
 
                 <RadioButton
                     android:id="@+id/radioThemeSystem"
@@ -84,7 +75,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="24dp">
 
                 <RadioButton
                     android:id="@+id/radioTextNormal"
@@ -123,8 +114,7 @@
                 android:id="@+id/weekStartGroup"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginBottom="24dp">
+                android:orientation="horizontal">
 
                 <RadioButton
                     android:id="@+id/radioStartMonday"
@@ -143,142 +133,6 @@
                     android:layout_marginStart="16dp" />
 
             </RadioGroup>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider"
-                android:layout_marginBottom="24dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Mood Legend"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp" />
-
-            <LinearLayout
-                android:id="@+id/legendPreview"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="12dp"
-                android:background="@color/surface"
-                android:layout_marginBottom="8dp" />
-
-            <Button
-                android:id="@+id/editLegendButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Edit Legend"
-                android:layout_marginBottom="24dp" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider"
-                android:layout_marginBottom="24dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Scheduled Questions"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp" />
-
-            <Button
-                android:id="@+id/manageQuestionsButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Manage Scheduled Questions"
-                android:layout_marginBottom="24dp" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider"
-                android:layout_marginBottom="24dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Data"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp" />
-
-            <Button
-                android:id="@+id/importButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Import Data from File"
-                android:layout_marginBottom="8dp" />
-
-            <Button
-                android:id="@+id/exportButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Export &amp; Share Data"
-                android:layout_marginBottom="8dp" />
-
-            <Button
-                android:id="@+id/deleteAllButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Delete All Data"
-                android:backgroundTint="@color/delete_red" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider"
-                android:layout_marginTop="24dp"
-                android:layout_marginBottom="24dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="About"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp" />
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/about_text"
-                android:textColor="@color/text_primary"
-                android:lineSpacingMultiplier="1.4"
-                android:layout_marginBottom="16dp" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider"
-                android:layout_marginBottom="24dp" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Support"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="8dp" />
-
-            <Button
-                android:id="@+id/buyMeCoffeeButton"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Buy Me a Coffee"
-                android:backgroundTint="#FFDD00"
-                android:textColor="#000000" />
 
         </LinearLayout>
 

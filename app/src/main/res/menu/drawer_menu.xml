@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_reports"
+        android:title="Reports" />
+
+    <item
+        android:id="@+id/nav_help"
+        android:title="Help" />
+
+    <group
+        android:id="@+id/group_nav"
+        android:title="Manage"
+        android:checkableBehavior="none">
+
+        <item
+            android:id="@+id/nav_edit_legend"
+            android:title="Edit Legend" />
+
+        <item
+            android:id="@+id/nav_questions"
+            android:title="Manage Scheduled Questions" />
+
+        <item
+            android:id="@+id/nav_data"
+            android:title="Manage/Share Data" />
+
+        <item
+            android:id="@+id/nav_about"
+            android:title="About" />
+
+        <item
+            android:id="@+id/nav_coffee"
+            android:title="Buy Me a Coffee" />
+
+    </group>
+
+    <group
+        android:id="@+id/group_settings"
+        android:title="Preferences"
+        android:checkableBehavior="none">
+
+        <item
+            android:id="@+id/nav_display"
+            android:title="Settings" />
+
+    </group>
+
+</menu>

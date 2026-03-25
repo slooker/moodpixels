@@ -19,6 +19,16 @@
             android:title="Scheduled Questions"
             app:titleTextColor="@android:color/white" />
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Scheduled questions send you a notification at a time you choose — daily or on specific days of the week. When you tap the notification, you answer the question and your response is saved. Answers show up in Reports grouped by date. Tap + to add a question, or tap an existing one to edit or delete it."
+            android:textSize="13sp"
+            android:textColor="@color/text_secondary"
+            android:lineSpacingMultiplier="1.4"
+            android:background="@color/surface" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/questionsRecycler"
             android:layout_width="match_parent"

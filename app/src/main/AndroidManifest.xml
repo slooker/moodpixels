@@ -48,6 +48,19 @@
             android:exported="false" />
 
         <activity
+            android:name=".ui.settings.ManageDataActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.settings.AboutActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.settings.HelpActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.answer.AnswerActivity"
             android:exported="false"
             android:launchMode="singleTop"

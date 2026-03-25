@@ -96,6 +96,7 @@ class ReportAdapter(
         private val swatch = view.findViewById<View>(R.id.moodSwatch)
         private val name = view.findViewById<TextView>(R.id.moodName)
         private val time = view.findViewById<TextView>(R.id.moodTime)
+        private val note = view.findViewById<TextView>(R.id.moodNote)
 
         fun bind(entry: MoodEntry) {
             (swatch.background as? GradientDrawable)?.setColor(entry.colorValue)
@@ -112,6 +113,13 @@ class ReportAdapter(
                         else -> "${h - 12}pm"
                     }
                 }
+            val noteText = entry.note?.takeIf { it.isNotBlank() }
+            if (noteText != null) {
+                note.text = noteText
+                note.visibility = View.VISIBLE
+            } else {
+                note.visibility = View.GONE
+            }
         }
     }
 
